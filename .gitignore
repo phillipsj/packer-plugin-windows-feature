@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+packer-plugin-windows-feature
+packer-plugin-windows-feature.exe
 
 # Test binary, built with `go test -c`
 *.test
@@ -13,3 +15,9 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# dirs
+dist/
+tmp*
+.idea/
+.vscode

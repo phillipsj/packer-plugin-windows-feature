@@ -1,6 +1,40 @@
+env:
+  - CGO_ENABLED=0
+before:
+  hooks:
+    - go test ./...
+    # Check plugin compatibility with required version of the Packer SDK
+    #- make plugin-check
 builds:
-  - env:
-      - CGO_ENABLED=0
+  # A separated build to run the packer-plugins-check only once for a linux_amd64 binary
+  -
+    id: plugin-check
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath #removes all file system paths from the compiled executable
+    ldflags:
+      - -s
+      - -w
+      - -X {{ .ModulePath }}/version.Commit={{ .Commit }}
+      - -X {{ .ModulePath }}/version.CommitDate={{ .CommitDate }}
+      - -X {{ .ModulePath }}/version.Version={{.Version}}
+      - -X {{ .ModulePath }}/version.VersionPrerelease=
+    goos:
+      - linux
+    goarch:
+      - amd64
+    binary: '{{ .ProjectName }}_v{{ .Version }}_{{ .Env.API_VERSION }}_{{ .Os }}_{{ .Arch }}'
+  -
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath #removes all file system paths from the compiled executable
+    ldflags:
+      - -s
+      - -w
+      - -X {{ .ModulePath }}/version.Commit={{ .Commit }}
+      - -X {{ .ModulePath }}/version.CommitDate={{ .CommitDate }}
+      - -X {{ .ModulePath }}/version.Version={{.Version}}
+      - -X {{ .ModulePath }}/version.VersionPrerelease=
     goos:
       - linux
       - darwin
@@ -8,17 +42,22 @@ builds:
     goarch:
       - amd64
       - arm64
-    flags:
-      - -v
-      - -trimpath
-    ldflags:
-      - -s
-      - -w
-      - -X main.version={{ .Version }}
-      - -X main.commit={{ .Commit }}
-      - -X main.date={{ .CommitDate }}
-    mod_timestamp: '{{ .CommitTimestamp }}'
+    ignore:
+      - goos: linux
+        goarch: amd64
     binary: '{{ .ProjectName }}_v{{ .Version }}_{{ .Env.API_VERSION }}_{{ .Os }}_{{ .Arch }}'
+#signs:
+#  - artifacts: checksum
+#    args:
+#      # if you are using this is in a GitHub action or some other automated pipeline, you
+#      # need to pass the batch flag to indicate its not interactive.
+#      - "--batch"
+#      - "--local-user"
+#      - "{{ .Env.GPG_FINGERPRINT }}"
+#      - "--output"
+#      - "${signature}"
+#      - "--detach-sign"
+#      - "${artifact}"
 changelog:
   sort: asc
   filters:

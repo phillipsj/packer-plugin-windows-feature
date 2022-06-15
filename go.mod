@@ -2,7 +2,11 @@ module github.com/phillipsj/packer-plugin-windows-feature
 
 go 1.18
 
-require github.com/hashicorp/packer-plugin-sdk v0.3.0
+require (
+	github.com/hashicorp/hcl/v2 v2.12.0
+	github.com/hashicorp/packer-plugin-sdk v0.3.0
+	github.com/zclconf/go-cty v1.10.0
+)
 
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect
@@ -28,7 +32,6 @@ require (
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/hcl/v2 v2.12.0 // indirect
 	github.com/hashicorp/serf v0.9.5 // indirect
 	github.com/hashicorp/vault/api v1.1.1 // indirect
 	github.com/hashicorp/vault/sdk v0.2.1 // indirect
@@ -47,7 +50,6 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/zclconf/go-cty v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20220427172511-eb4f295cb31f // indirect
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect

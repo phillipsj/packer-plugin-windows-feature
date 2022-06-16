@@ -16,6 +16,8 @@ type elevatedOptions struct {
 //go:embed elevated-template.ps1
 var elevatedTemplatePs1 string
 
-var elevatedTemplate = template.Must(
-	template.New("Elevated").Parse(
-		elevatedTemplatePs1))
+func elevatedTemplate() *template.Template {
+	return template.Must(
+		template.New("Elevated").Parse(
+			elevatedTemplatePs1))
+}

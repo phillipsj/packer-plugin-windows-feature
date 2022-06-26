@@ -8,8 +8,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$mock = $false
-
 function ExitWithCode($exitCode) {
     $host.SetShouldExit($exitCode)
     Exit
@@ -20,21 +18,6 @@ trap {
     Write-Output (($_.ScriptStackTrace -split '\r?\n') -replace '^(.*)$', 'ERROR: $1')
     Write-Output (($_.Exception.ToString() -split '\r?\n') -replace '^(.*)$', 'ERROR EXCEPTION: $1')
     ExitWithCode 1
-}
-
-if ($mock) {
-    $mockWindowsUpdatePath = 'C:\Windows\Temp\windows-update-count-mock.txt'
-    if (!(Test-Path $mockWindowsUpdatePath)) {
-        Set-Content $mockWindowsUpdatePath 10
-    }
-    $count = [int]::Parse((Get-Content $mockWindowsUpdatePath).Trim())
-    if ($count) {
-        Write-Output "Synthetic reboot countdown counter is at $count"
-        Set-Content $mockWindowsUpdatePath (--$count)
-        ExitWithCode 101
-    }
-    Write-Output 'No Windows updates found'
-    ExitWithCode 0
 }
 
 Add-Type @'
@@ -74,22 +57,6 @@ function Wait-Condition {
     }
 }
 
-function LookupOperationResultCode($code) {
-    $operationResultCodes = @{
-        0 = "NotStarted";
-        1 = "InProgress";
-        2 = "Succeeded";
-        3 = "SucceededWithErrors";
-        4 = "Failed";
-        5 = "Aborted"
-    }
-
-    if ($operationResultCodes.ContainsKey($code)) {
-        return $operationResultCodes[$code]
-    }
-    return "Unknown Code $code"
-}
-
 function ExitWhenRebootRequired($rebootRequired = $false) {
     # check for pending Windows Updates.
     if (!$rebootRequired) {
@@ -111,13 +78,6 @@ function ExitWhenRebootRequired($rebootRequired = $false) {
     }
 }
 
-ExitWhenRebootRequired
-
-if ($OnlyCheckForRebootRequired) {
-    Write-Output "$env:COMPUTERNAME restarted."
-    ExitWithCode 0
-}
-
 function Install-WindowsFeatures {
     [CmdletBinding()]
     param (
@@ -125,15 +85,23 @@ function Install-WindowsFeatures {
         [String[]]
         $RequiredFeatures
     )
+
+    $restartNeeded = $false
+
     foreach ($feature in $RequiredFeatures) {
         $f = Get-WindowsFeature -Name $feature
         if (-not $f.Installed) {
-            Install-WindowsFeature -Name $feature
+            $result = Install-WindowsFeature -Name $feature
+            if ($result.RestartNeeded -eq "Yes") {
+                $restartNeeded = $true
+            }
         }
         else {
             Write-Output "Windows feature: '$feature' is already installed."
         }
     }
+
+    return $restartNeeded
 }
 
 function Install-WindowsCapabilities {
@@ -143,13 +111,33 @@ function Install-WindowsCapabilities {
         [String[]]
         $RequiredCapabilities
     )
+
+    $restartNeeded = $false
+
     foreach ($capability in $RequiredCapabilities) {
         $c = Get-WindowsCapability -Name $capability
         if ($c.State -ne "Installed") {
-            Add-WindowsCapability -Online -Name $capability
+            $result = Add-WindowsCapability -Online -Name $capability
+            if ($result.RestartNeeded) {
+                $restartNeeded = $true
+            }
         }
         else {
             Write-Output "Windows capability: '$capability' is already installed."
         }
     }
+
+    return $restartNeeded
 }
+
+ExitWhenRebootRequired
+
+if ($OnlyCheckForRebootRequired) {
+    Write-Output "$env:COMPUTERNAME restarted."
+    ExitWithCode 0
+}
+
+$featureRestart = Install-WindowsFeature -RequiredFeatures $Features
+$capabilityRestart = Install-WindowsCapabilities -RequiredCapabilities $Capabilities
+
+ExitWhenRebootRequired ($featureRestart -or $capabilityRestart)
